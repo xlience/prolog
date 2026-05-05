@@ -1,0 +1,70 @@
+:- use_module(library(lists)).
+
+size(6).
+
+attacks((X1,Y1), (X2,Y2)) :- (X1 =:= X2; Y1 =:= Y2).
+
+all_covered(Rooks) :-
+    size(N),
+    forall(between(1,N,X), (
+        forall(between(1,N,Y), (
+            (member((X,Y), Rooks) -> true
+            ;
+            member(R, Rooks), attacks(R, (X,Y))
+            )
+        ))
+    )).
+
+no_attacks([]).
+no_attacks([_]).
+no_attacks([R1,R2|Rs]) :-
+    \+ attacks(R1, R2),
+    no_attacks([R1|Rs]),
+    no_attacks([R2|Rs]).
+
+valid(Rooks) :-
+    all_covered(Rooks),
+    no_attacks(Rooks).
+
+gen_rooks_optimized(K, Rooks) :-
+    size(N),
+    findall(Row, between(1,N,Row), Rows),
+    permutation(Rows, PermRows),
+    length(PermRows, K),
+    findall(Col, between(1,N,Col), Cols),
+    permutation(Cols, PermCols),
+    length(PermCols, K),
+    findall((R,C), (nth1(I, PermRows, R), nth1(I, PermCols, C)), Rooks).
+
+min_rooks(Answer) :-
+    between(1, 6, K),
+    gen_rooks_optimized(K, Rooks),
+    valid(Rooks),
+    Answer = K,
+    format('~nНайдено решение с ~d ладьями:~n', [K]),
+    print_rooks(Rooks),
+    !.
+
+print_rooks(Rooks) :-
+    size(N),
+    write('   '),
+    forall(between(1,N,C), format('~d ', C)), nl,
+    forall(between(1,N,R), (
+        format('~d  ', R),
+        forall(between(1,N,C), (
+            (member((R,C), Rooks) -> write('R ') 
+            ;
+            (check_covered((R,C), Rooks) -> write('. ') 
+            ; write('_ '))
+            )
+        )),
+        nl
+    )), nl.
+
+check_covered(Cell, Rooks) :-
+    member(R, Rooks),
+    attacks(R, Cell).
+
+run :-
+    min_rooks(Answer),
+    format('~nОптимальное количество ладей: ~d~n', [Answer]).
