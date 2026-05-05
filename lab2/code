@@ -2,15 +2,3 @@ reverse_list([], []).
 reverse_list([X|T], Reversed) :-
     reverse_list(T, ReversedTail),
     append(ReversedTail, [X], Reversed).
-
-reverse_acc([], Acc, Acc).
-reverse_acc([X|T], Acc, Result) :-
-    reverse_acc(T, [X|Acc], Result).
-
-reverse_list_acc(List, Reversed) :-
-    reverse_acc(List, [], Reversed).
-
-print_reverse(List) :-
-    reverse_list_acc(List, Reversed),
-    write('Исходный список: '), write(List), nl,
-    write('Инвертированный: '), write(Reversed), nl.
