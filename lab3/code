@@ -1,0 +1,233 @@
+:- dynamic book/6.
+:- dynamic reader/6.
+:- dynamic issued/4.
+
+init :-
+    retractall(book(_,_,_,_,_,_)),
+    retractall(reader(_,_,_,_,_,_)),
+    retractall(issued(_,_,_,_)),
+    
+    assert(book(1, 'Программирование на Prolog', 'Братко И.', '004.4', 1990, 500)),
+    assert(book(2, 'Искусство программирования', 'Кнут Д.', '004.4', 2010, 1500)),
+    assert(book(3, 'Базы данных', 'Дейт К.', '004.6', 2005, 800)),
+    assert(book(4, 'Логическое программирование', 'Стерлинг Л.', '004.4', 1995, 600)),
+    assert(book(5, 'Компьютерные сети', 'Таненбаум Э.', '004.7', 2012, 1200)),
+    
+    assert(reader(1, 'Иванов Иван', 2000, 'ул. Ленина, 1', 'студент', 'ИВТ-20-1')),
+    assert(reader(2, 'Петрова Анна', 2001, 'ул. Гагарина, 2', 'студент', 'ИВТ-20-1')),
+    assert(reader(3, 'Сидоров Сергей', 1998, 'ул. Пушкина, 3', 'аспирант', 'АС-18')),
+    assert(reader(4, 'Кузнецова Мария', 1985, 'ул. Советская, 4', 'преподаватель', 'ИТ')),
+    assert(reader(5, 'Васильев Дмитрий', 2002, 'ул. Мира, 5', 'студент', 'ПИ-21-1')),
+    
+    assert(issued(1, 1, '2024-09-01', '2024-09-15')),
+    assert(issued(2, 1, '2024-09-01', '2024-09-15')),
+    assert(issued(1, 2, '2024-09-03', '2024-09-17')),
+    assert(issued(3, 3, '2024-09-05', '2024-09-20')),
+    assert(issued(4, 4, '2024-09-10', '2024-10-01')),
+    assert(issued(1, 5, '2024-09-12', '2024-09-26')),
+    assert(issued(5, 5, '2024-09-12', '2024-09-26')),
+    assert(issued(2, 3, '2024-09-15', '2024-09-30')),
+    
+    write('База данных инициализирована'), nl.
+
+reader_books(ReaderId, Books) :-
+    findall(Title, (issued(BookId, ReaderId, _, _), book(BookId, Title, _, _, _, _)), Books).
+
+book_readers(BookId, Readers) :-
+    findall(Name, (issued(BookId, ReaderId, _, _), reader(ReaderId, Name, _, _, _, _)), Readers).
+
+query_reader_books(ReaderName) :-
+    reader(ReaderId, ReaderName, _, _, _, _),
+    reader_books(ReaderId, Books),
+    write('Читатель '), write(ReaderName), write(' взял книги: '), nl,
+    write_books(Books).
+
+query_book_readers(BookTitle) :-
+    book(BookId, BookTitle, _, _, _, _),
+    book_readers(BookId, Readers),
+    write('Книгу "'), write(BookTitle), write('" взяли: '), nl,
+    write_readers(Readers).
+
+write_books([]).
+write_books([H|T]) :-
+    write('  - '), write(H), nl,
+    write_books(T).
+
+write_readers([]).
+write_readers([H|T]) :-
+    write('  - '), write(H), nl,
+    write_readers(T).
+
+add_book :-
+    write('Введите ID книги: '), read(Id),
+    write('Введите название: '), read(Title),
+    write('Введите автора: '), read(Author),
+    write('Введите раздел УДК: '), read(Section),
+    write('Введите год издания: '), read(Year),
+    write('Введите цену: '), read(Price),
+    assertz(book(Id, Title, Author, Section, Year, Price)),
+    write('Книга добавлена'), nl.
+
+add_reader :-
+    write('Введите ID читателя: '), read(Id),
+    write('Введите ФИО: '), read(Name),
+    write('Введите год рождения: '), read(BirthYear),
+    write('Введите адрес: '), read(Address),
+    write('Введите тип (студент/аспирант/преподаватель): '), read(Type),
+    write('Введите группу/кафедру: '), read(Group),
+    assertz(reader(Id, Name, BirthYear, Address, Type, Group)),
+    write('Читатель добавлен'), nl.
+
+add_issued :-
+    write('Введите ID книги: '), read(BookId),
+    write('Введите ID читателя: '), read(ReaderId),
+    write('Введите дату выдачи (ГГГГ-ММ-ДД): '), read(IssueDate),
+    write('Введите дату возврата (ГГГГ-ММ-ДД): '), read(ReturnDate),
+    assertz(issued(BookId, ReaderId, IssueDate, ReturnDate)),
+    write('Выдача добавлена'), nl.
+
+delete_book :-
+    write('Введите ID книги для удаления: '), read(Id),
+    ( retract(book(Id, _, _, _, _, _)) ->
+        write('Книга удалена'), nl
+    ;
+        write('Книга с таким ID не найдена'), nl
+    ).
+
+delete_reader :-
+    write('Введите ID читателя для удаления: '), read(Id),
+    ( retract(reader(Id, _, _, _, _, _)) ->
+        write('Читатель удален'), nl
+    ;
+        write('Читатель с таким ID не найден'), nl
+    ).
+
+delete_issued :-
+    write('Введите ID книги: '), read(BookId),
+    write('Введите ID читателя: '), read(ReaderId),
+    ( retract(issued(BookId, ReaderId, _, _)) ->
+        write('Запись о выдаче удалена'), nl
+    ;
+        write('Запись не найдена'), nl
+    ).
+
+show_books :-
+    write('Список всех книг:'), nl,
+    book(Id, Title, Author, Section, Year, Price),
+    write('  ID:'), write(Id),
+    write(', Название:'), write(Title),
+    write(', Автор:'), write(Author),
+    write(', УДК:'), write(Section),
+    write(', Год:'), write(Year),
+    write(', Цена:'), write(Price), nl,
+    fail.
+show_books.
+
+show_readers :-
+    write('Список всех читателей:'), nl,
+    reader(Id, Name, BirthYear, Address, Type, Group),
+    write('  ID:'), write(Id),
+    write(', ФИО:'), write(Name),
+    write(', Год рожд.:'), write(BirthYear),
+    write(', Адрес:'), write(Address),
+    write(', Тип:'), write(Type),
+    write(', Группа:'), write(Group), nl,
+    fail.
+show_readers.
+
+show_issued :-
+    write('Список всех выдач:'), nl,
+    issued(BookId, ReaderId, IssueDate, ReturnDate),
+    book(BookId, Title, _, _, _, _),
+    reader(ReaderId, Name, _, _, _, _),
+    write('  Книга:'), write(Title),
+    write(', Читатель:'), write(Name),
+    write(', Выдана:'), write(IssueDate),
+    write(', Вернуть до:'), write(ReturnDate), nl,
+    fail.
+show_issued.
+
+menu_do(0) :-
+    write('До свидания!'), nl.
+
+menu_do(1) :-
+    add_book,
+    menu_loop.
+
+menu_do(2) :-
+    add_reader,
+    menu_loop.
+
+menu_do(3) :-
+    add_issued,
+    menu_loop.
+
+menu_do(4) :-
+    delete_book,
+    menu_loop.
+
+menu_do(5) :-
+    delete_reader,
+    menu_loop.
+
+menu_do(6) :-
+    delete_issued,
+    menu_loop.
+
+menu_do(7) :-
+    show_books,
+    menu_loop.
+
+menu_do(8) :-
+    show_readers,
+    menu_loop.
+
+menu_do(9) :-
+    show_issued,
+    menu_loop.
+
+menu_do(10) :-
+    write('Введите ФИО читателя: '), read(Name),
+    query_reader_books(Name),
+    menu_loop.
+
+menu_do(11) :-
+    write('Введите название книги: '), read(Title),
+    query_book_readers(Title),
+    menu_loop.
+
+menu_do(12) :-
+    init,
+    menu_loop.
+
+menu_do(_) :-
+    write('Неверный выбор, попробуйте снова'), nl,
+    menu_loop.
+
+menu_loop :-
+    repeat,
+    write('========================================'), nl,
+    write('        БИБЛИОТЕКА ИНСТИТУТА'), nl,
+    write('========================================'), nl,
+    write('1  - Добавить книгу'), nl,
+    write('2  - Добавить читателя'), nl,
+    write('3  - Добавить выдачу книги'), nl,
+    write('4  - Удалить книгу'), nl,
+    write('5  - Удалить читателя'), nl,
+    write('6  - Удалить запись о выдаче'), nl,
+    write('7  - Показать все книги'), nl,
+    write('8  - Показать всех читателей'), nl,
+    write('9  - Показать все выдачи'), nl,
+    write('10 - Какие книги взял читатель'), nl,
+    write('11 - Кто взял книгу'), nl,
+    write('12 - Инициализировать БД (сброс)'), nl,
+    write('0  - Выход'), nl,
+    write('----------------------------------------'), nl,
+    write('Ваш выбор: '), read(I),
+    menu_do(I),
+    I = 0, !.
+
+main :-
+    write('Добро пожаловать в систему "Библиотека"'), nl,
+    init,
+    menu_loop.
