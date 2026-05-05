@@ -1,0 +1,19 @@
+:- discontiguous loves/2.
+
+loves(mary, peaches).
+loves(mary, corn).
+loves(mary, apples).
+
+fruit(peaches).
+fruit(apples).
+
+color(peaches, yellow).
+color(apples, red).
+color(apples, yellow).
+color(oranges, orange).
+
+loves(bet, Thing) :-
+    loves(mary, Thing),
+    (   (fruit(Thing), color(Thing, red))
+    ;   Thing = corn
+    ).
