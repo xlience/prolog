@@ -1,0 +1,207 @@
+;;; ======================================================================
+;;; ЭКСПЕРТНАЯ СИСТЕМА: ДИАГНОСТИКА НЕИСПРАВНОСТЕЙ КОМПЬЮТЕРА
+;;; ======================================================================
+
+;;; ----------------------------------------------------------------------
+;;; Шаблоны фактов
+;;; ----------------------------------------------------------------------
+
+(deftemplate symptom
+   (slot name)
+   (slot value (type SYMBOL) (allowed-values yes no unknown))
+   (slot asked (default no)))
+
+(deftemplate diagnosis
+   (slot problem)
+   (slot confidence (type INTEGER) (default 0)))
+
+(deftemplate recommendation
+   (slot problem)
+   (slot action))
+
+;;; ----------------------------------------------------------------------
+;;; БАЗА ЗНАНИЙ (правила)
+;;; ----------------------------------------------------------------------
+
+;;; Правило 1: Проблема с блоком питания
+(defrule diagnose-power-supply
+   (symptom (name no-power) (value yes))
+   (symptom (name no-fan-noise) (value yes))
+   (not (diagnosis (problem power-supply)))
+   =>
+   (assert (diagnosis (problem power-supply) (confidence 90)))
+   (assert (recommendation (problem power-supply) 
+            (action "Проверьте кабель питания, замените блок питания"))))
+
+;;; Правило 2: Проблема с материнской платой
+(defrule diagnose-motherboard
+   (symptom (name no-power) (value yes))
+   (symptom (name fan-noise) (value yes))
+   (symptom (name no-beep) (value yes))
+   (not (diagnosis (problem motherboard)))
+   =>
+   (assert (diagnosis (problem motherboard) (confidence 85)))
+   (assert (recommendation (problem motherboard)
+            (action "Проверьте конденсаторы, замените материнскую плату"))))
+
+;;; Правило 3: Проблема с оперативной памятью (RAM)
+(defrule diagnose-ram
+   (symptom (name power-on) (value yes))
+   (symptom (name no-display) (value yes))
+   (symptom (name continuous-beep) (value yes))
+   (not (diagnosis (problem ram)))
+   =>
+   (assert (diagnosis (problem ram) (confidence 95)))
+   (assert (recommendation (problem ram)
+            (action "Переустановите планки RAM, проверьте контакты, замените неисправные"))))
+
+;;; Правило 4: Проблема с видеокартой (сигналы BIOS)
+(defrule diagnose-video-card
+   (symptom (name power-on) (value yes))
+   (symptom (name no-display) (value yes))
+   (symptom (name one-long-two-short) (value yes))
+   (not (diagnosis (problem video-card)))
+   =>
+   (assert (diagnosis (problem video-card) (confidence 90)))
+   (assert (recommendation (problem video-card)
+            (action "Переустановите видеокарту, проверьте кабель, замените видеокарту"))))
+
+;;; Правило 5: Проблема с видеокартой (без сигналов)
+(defrule diagnose-video-card-no-signal
+   (symptom (name power-on) (value yes))
+   (symptom (name no-display) (value yes))
+   (symptom (name no-beep-during) (value yes))
+   (symptom (name fan-spin) (value yes))
+   (not (diagnosis (problem video-card)))
+   =>
+   (assert (diagnosis (problem video-card) (confidence 70)))
+   (assert (recommendation (problem video-card)
+            (action "Проверьте подключение монитора, переустановите видеокарту"))))
+
+;;; Правило 6: Проблема с жёстким диском
+(defrule diagnose-hard-drive
+   (symptom (name power-on) (value yes))
+   (symptom (name no-boot) (value yes))
+   (symptom (name clicking-sound) (value yes))
+   (not (diagnosis (problem hard-drive)))
+   =>
+   (assert (diagnosis (problem hard-drive) (confidence 95)))
+   (assert (recommendation (problem hard-drive)
+            (action "Сделайте бэкап немедленно! Замените жёсткий диск"))))
+
+;;; Правило 7: Проблема с загрузкой (софт)
+(defrule diagnose-boot-software
+   (symptom (name power-on) (value yes))
+   (symptom (name no-boot) (value yes))
+   (symptom (name error-message) (value yes))
+   (not (diagnosis (problem boot-software)))
+   =>
+   (assert (diagnosis (problem boot-software) (confidence 60)))
+   (assert (recommendation (problem boot-software)
+            (action "Попробуйте загрузиться в безопасном режиме, восстановите загрузчик"))))
+
+;;; Правило 8: Проблема с перегревом
+(defrule diagnose-overheating
+   (symptom (name random-shutdown) (value yes))
+   (symptom (name hot-case) (value yes))
+   (not (diagnosis (problem overheating)))
+   =>
+   (assert (diagnosis (problem overheating) (confidence 85)))
+   (assert (recommendation (problem overheating)
+            (action "Почистите систему охлаждения, замените термопасту, проверьте вентиляторы"))))
+
+;;; ----------------------------------------------------------------------
+;;; Запрос симптомов у пользователя
+;;; ----------------------------------------------------------------------
+
+(deffunction ask-question (?question ?fact-name)
+   (printout t ?question " (yes/no/unknown): ")
+   (bind ?answer (read))
+   (while (and (neq ?answer yes) (neq ?answer no) (neq ?answer unknown))
+      (printout t "Пожалуйста, ответьте yes, no или unknown: ")
+      (bind ?answer (read)))
+   (assert (symptom (name ?fact-name) (value ?answer) (asked yes)))
+   (return ?answer))
+
+;;; ----------------------------------------------------------------------
+;;; Основной диалог
+;;; ----------------------------------------------------------------------
+
+(defrule get-symptoms
+   (not (symptom (asked yes)))
+   =>
+   (printout t crlf "========================================" crlf)
+   (printout t "   ДИАГНОСТИКА НЕИСПРАВНОСТЕЙ КОМПЬЮТЕРА" crlf)
+   (printout t "========================================" crlf crlf)
+   
+   (ask-question "Компьютер вообще не включается?" no-power)
+   (ask-question "Слышен шум вентилятора?" fan-noise)
+   (ask-question "Нет шума от вентиляторов?" no-fan-noise)
+   (ask-question "Есть звуковые сигналы BIOS?" has-beep)
+   (ask-question "Нет звуковых сигналов?" no-beep)
+   (ask-question "Непрерывный сигнал BIOS?" continuous-beep)
+   (ask-question "Один длинный и два коротких сигнала?" one-long-two-short)
+   (ask-question "Компьютер включается (питание есть)?" power-on)
+   (ask-question "Нет изображения на экране?" no-display)
+   (ask-question "Нет сигналов BIOS при включении?" no-beep-during)
+   (ask-question "Вентиляторы крутятся?" fan-spin)
+   (ask-question "Не загружается ОС (чёрный экран после BIOS)?" no-boot)
+   (ask-question "Слышен щёлкающий звук из корпуса?" clicking-sound)
+   (ask-question "На экране есть сообщение об ошибке?" error-message)
+   (ask-question "Компьютер выключается случайным образом?" random-shutdown)
+   (ask-question "Корпус сильно нагревается?" hot-case))
+
+;;; ----------------------------------------------------------------------
+;;; Вывод результатов
+;;; ----------------------------------------------------------------------
+
+(defrule show-diagnosis
+   (diagnosis (problem ?p) (confidence ?c))
+   =>
+   (printout t crlf "----------------------------------------" crlf)
+   (printout t "ВОЗМОЖНАЯ НЕИСПРАВНОСТЬ: " crlf)
+   (printout t "  - " ?p crlf)
+   (printout t "ДОВЕРИЕ (уверенность): " ?c "%" crlf))
+
+(defrule show-recommendation
+   (recommendation (problem ?p) (action ?a))
+   =>
+   (printout t crlf "РЕКОМЕНДАЦИЯ:" crlf)
+   (printout t "  - " ?a crlf))
+
+(defrule show-no-diagnosis
+   (not (diagnosis))
+   =>
+   (printout t crlf "----------------------------------------" crlf)
+   (printout t "НЕИСПРАВНОСТЬ НЕ НАЙДЕНА" crlf)
+   (printout t "Попробуйте обратиться к специалисту" crlf))
+
+;;; ----------------------------------------------------------------------
+;;; Сброс и запуск
+;;; ----------------------------------------------------------------------
+
+(defrule clear-old-data
+   (declare (salience 100))
+   =>
+   (printout t "Очистка предыдущих данных..." crlf)
+   (delayed-do-for-all-facts ((?s symptom)) (eq ?s:asked yes) (retract ?s)))
+
+(defrule start
+   (declare (salience 50))
+   ?f <- (initial-fact)
+   =>
+   (retract ?f)
+   (printout t crlf "Введите (run) для начала диагностики." crlf))
+
+;;; ----------------------------------------------------------------------
+;;; Команда для сброса всей базы фактов
+;;; ----------------------------------------------------------------------
+
+(defrule clear-all
+   (declare (salience -1))
+   (not (initial-fact))
+   =>
+   ;; Явное удаление всех фактов по известным шаблонам
+   (delayed-do-for-all-facts ((?s symptom)) TRUE (retract ?s))
+   (delayed-do-for-all-facts ((?d diagnosis)) TRUE (retract ?d))
+   (delayed-do-for-all-facts ((?r recommendation)) TRUE (retract ?r)))
